@@ -1,10 +1,12 @@
+#include <stdlib.h>
+
 #include "upgma.h"
 
 // output upgma recursively
 void upgmaout(FILE *f, int i, int m, int *inodes, int *jnodes, double *heights, char **names);
 
 // modifies dist
-void upgma(FILE *f, double **dist, char **names, int n)
+void upgma(FILE *f, double **dists, char **names, int n)
 {
 	int i, j, k, l;
 	double min = 0;
@@ -28,7 +30,7 @@ void upgma(FILE *f, double **dist, char **names, int n)
 	}
 
 	// maintain minimum
-	for (i = 0, max = 0; i < n; ++i) {
+	for (i = 0, min = 0; i < n; ++i) {
 		for (j = i+1; j < n; ++j) {
 			if (dists[i][j] < min) {
 				min = dists[i][j];
@@ -45,7 +47,7 @@ void upgma(FILE *f, double **dist, char **names, int n)
 		j = minj;
 
 		// combine (i,j)
-		heights[m] = dist[i][j] / 2;
+		heights[m] = dists[i][j] / 2;
 		/*
 		inodes[m]  = i;
 		jnodes[m]  = j;
@@ -86,7 +88,7 @@ void upgma(FILE *f, double **dist, char **names, int n)
 	}
 
 	// output clusters from heights, inodes and jnodes recursively
-	upgmaout(f, 0, m, inodes, jnodes, heights);
+	upgmaout(f, 0, m, inodes, jnodes, heights, names);
 }
 
 void upgmaout(FILE *f, int i, int m, int *inodes, int *jnodes, double *heights, char **names)
@@ -95,11 +97,13 @@ void upgmaout(FILE *f, int i, int m, int *inodes, int *jnodes, double *heights, 
 		// output node name
 		fprintf(f, "%s", names[i]);
 	} else {
-		// "remove" cluster from tree
+		int i = inodes[m-1],
+		    j = jnodes[m-1];
+		// "remove" cluster from tree, recursively print each subtree
 		fprintf(f, "[");
-		upgmaout(f, i, inodes[i], inodes, jnodes, heights);
-		fprintf(f, ":%lf-", heights[m]);
-		upgmaout(f, j, jnodes[j], inodes, jnodes, heights);
-		upgmaout(f, ":%lf]", heights[m]);
+		upgmaout(f, i, inodes[i], inodes, jnodes, heights, names);
+		fprintf(f, ":%lf-", heights[m-1]);
+		upgmaout(f, j, jnodes[j], inodes, jnodes, heights, names);
+		fprintf(f, ":%lf]", heights[m-1]);
 	}
 }
