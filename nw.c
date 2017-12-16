@@ -22,6 +22,11 @@ int nw(char *seq1, char *seq2, int n, int m)
 	for (i = 0; i < n+1; ++i)
 		scores[i] = calloc(m+1, sizeof(int));
 
+	for (i = 0; i < n+1; ++i)
+		scores[i][0] = i*GAP;
+	for (j = 0; j < m+1; ++j)
+		scores[0][j] = j*GAP;
+
 	// fill scoring matrix row by row
 	for (i = 0; i < n; ++i) {
 		for (j = 0; j < m; ++j) {
@@ -34,7 +39,7 @@ int nw(char *seq1, char *seq2, int n, int m)
 		}
 	}
 
-	int res = scores[n+1][m+1];
+	int res = scores[n][m];
 
 	// free matrices
 	for (i = 0; i < n+1; ++i)

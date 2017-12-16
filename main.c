@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 #include "nw.h"
 #include "upgma.h"
@@ -39,7 +40,10 @@ int main()
 	while (!feof(f)) {
 		// read name
 		names[n] = malloc(SEQLEN); // sizeof(char) == 1
-		fscanf(f, "%s\n", names[n]);
+		fgets(names[n], SEQLEN, f);
+		names[n][strlen(names[n])-1] = 0; // remove newline
+
+		printf("reading %s\n", names[n]);
 
 		// read sequence from file, skipping whitespace
 		seqs[n] = malloc(SEQLEN);
@@ -53,6 +57,8 @@ int main()
 			}
 		} while (!feof(f) && seqs[n][lens[n]] != '>');
 		seqs[n][lens[n]] = '\0';
+
+		printf("%s: %s (%d)\n", names[n], seqs[n], lens[n]);
 
 		// extend arrays if necessary
 		if (++n >= maxlen) {
@@ -70,8 +76,18 @@ int main()
 	for (i = 0; i < n; ++i) {
 		dists[i] = malloc(n * sizeof(double));
 		dists[i][i] = 0;
-		for (j = 0; j < i; ++j)
+		for (j = 0; j < i; ++j) { // dists[j] already allocated
 			dists[i][j] = dists[j][i] = nw(seqs[i], seqs[j], lens[i], lens[j]);
+			printf("(%d,%d)\n", i, j);
+		}
+	}
+
+	// testing
+	for (i = 0; i < n; ++i) {
+		for (j = 0; j < n; ++j) {
+			printf("%lf\t", dists[i][j]);
+		}
+		printf("\n");
 	}
 
 	// output UPGMA
