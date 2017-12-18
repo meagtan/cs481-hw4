@@ -69,6 +69,7 @@ int main()
 
 	// calculate alignment distances from Needleman-Wunsch scores
 	// in fact using scores will cluster sequences far apart, but that's irrelevant asthe sample output just uses scores
+	// in some cases distances may also be zero or negative in this case
 	dists = malloc(n * sizeof(double *));
 	for (i = 0; i < n; ++i) {
 		dists[i] = malloc(n * sizeof(double));

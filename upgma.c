@@ -121,11 +121,15 @@ void upgmaout(FILE *f, int i, int m, int *inodes, int *jnodes, int *iprevs, int 
 			j = inodes[m]; jprev = iprevs[m];
 		}
 
+		// distance of i and j to parent node
+		double iheight = heights[m] - (iprev != -1) * heights[iprev],
+		       jheight = heights[m] - (jprev != -1) * heights[jprev];
+
 		// "remove" cluster from tree, recursively print each subtree
 		fprintf(f, "[");
 		upgmaout(f, i, iprev, inodes, jnodes, iprevs, jprevs, heights, names);
-		fprintf(f, ":%g-", heights[m] - (iprev != -1) * heights[iprev]);
+		fprintf(f, ":%g%s-", iheight, iheight == (int) iheight ? ".0" : ""); // pad integer height with decimal
 		upgmaout(f, j, jprev, inodes, jnodes, iprevs, jprevs, heights, names);
-		fprintf(f, ":%g]", heights[m] - (jprev != -1) * heights[jprev]);
+		fprintf(f, ":%g%s]", jheight, jheight == (int) jheight ? ".0" : "");
 	}
 }
