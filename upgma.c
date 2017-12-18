@@ -11,10 +11,13 @@ void upgma(FILE *f, double **dists, char **names, int n)
 	int i, j, k, l;
 	int mini, minj;
 
-	// each internal node obtained from leaves i, j, i < j, may be represented by i
-	// n-1 internal nodes in total
-	// when an internal node (i,j) is formed, (i,j) is added to the following lists
-	// TODO also keep links to last cluster including i, j, and a dynamic index of when each i was last clustered
+	// found a way to implement UPGMA without actual trees
+	// (but still effectively treelike structures are stored in arrays)
+	// n-1 clusters are formed in total
+	// for each cluster m, store the smallest and largest index that is part of the cluster
+	//  as well as the previous clusters containing each index
+	// for each index i, store and update the largest cluster containing it
+	// after clustering, each element in the cluster is represented by its minimum element
 	int *sizes = malloc(n * sizeof(int));	// size of each node, initially all 1
 	int *cluster = malloc(n * sizeof(int)); // cluster[i] : the last time i was clustered
 	int *inodes = malloc((n-1) * sizeof(int)); // (inodes[m], jnodes[m]) clustered at m
@@ -40,8 +43,6 @@ void upgma(FILE *f, double **dists, char **names, int n)
 		}
 	}
 
-	// printf("minimum %lf at (%d,%d)\n", dists[mini][minj], mini, minj);
-
 	// combine until one cluster is left
 	for (m = 0; m < n-1; ++m) {
 		// find (i,j) pair with shortest distance, s.t. i<j, skipping 0 distances
@@ -56,15 +57,11 @@ void upgma(FILE *f, double **dists, char **names, int n)
 		jprevs[m]  = cluster[j];
 		cluster[i] = cluster[j] = m;
 
-		// printf("(%d,%d) in new cluster with size %d and height %lf\n", i, j, sizes[i] + sizes[j], heights[m]);
-
 		// average the distance vectors of i and j, update the rest
-		// here, should (mini, minj) be the smallest possible or the largest possible? would it introduce any inconsistency with cluster, inodes, jnodes?
-		// TODO is it necessary to go through entire matrix, or just to average ith and jth rows? need consistent matrix in order to calculate minimum
+		// is it necessary to go through entire matrix, or just to average ith and jth rows? need consistent matrix in order to calculate minimum
 		for (k = 0; k < n; ++k) {
 			for (l = k+1; l < n; ++l) {
 				// average the distances from and to i, j
-				// TODO also take into account the elements previously clustered with i or j // fixed by replacing k == i by dists[k][i] == 0
 				// since i will be visited before j, after updating i's value just set j's value to i's
 				if ((dists[k][i] == 0 && dists[l][j] == 0) || (dists[k][j] == 0 && dists[l][i] == 0) || dists[k][l] == 0) // hack
 					dists[k][l] = 0; // guarantees that (i,j) will be skipped next time
@@ -84,32 +81,18 @@ void upgma(FILE *f, double **dists, char **names, int n)
 			for (l = k+1; l < n; ++l) {
 				dists[l][k] = dists[k][l];
 				// maintain minimum, skipping members of same cluster
-				if (dists[k][l] != 0 && (dists[mini][minj] == 0 || dists[k][l] < dists[mini][minj ]|| (dists[k][l] == dists[mini][minj] && k <= mini && minj <= l))) {
+				// the last disjunct guarantees that mini is the minimum possible cluster member and minj is the maximum possible
+				if (dists[k][l] != 0 && (dists[mini][minj] == 0 || dists[k][l] < dists[mini][minj] || (dists[k][l] == dists[mini][minj] && k <= mini && minj <= l))) {
 					mini = k;
 					minj = l;
 				}
 			}
 		}
 
-		/*
-		for (k = 0; k < n; ++k) {
-			for (l = 0; l < n; ++l)
-				printf("%f\t", dists[k][l]);
-			printf("\n");
-		}
-		printf("minimum %lf at (%d,%d)\n", dists[mini][minj], mini, minj);
-		*/
-
 		// update cluster sizes
 		sizes[i] += sizes[j];
 		sizes[j]  = sizes[i];
 	}
-
-	/*
-	printf("inodes\tjnodes\tiprevs\tjprevs\theights\n");
-	for (m = 0; m < n-1; ++m)
-		printf("%d\t%d\t%d\t%d\t%g\n", inodes[m], jnodes[m], iprevs[m], jprevs[m], heights[m]);
-	*/
 
 	// output clusters from heights, inodes and jnodes recursively
 	upgmaout(f, 0, n-2, inodes, jnodes, iprevs, jprevs, heights, names);
@@ -126,15 +109,13 @@ void upgma(FILE *f, double **dists, char **names, int n)
 
 void upgmaout(FILE *f, int i, int m, int *inodes, int *jnodes, int *iprevs, int *jprevs, double *heights, char **names)
 {
-	// printf("printing %d at cluster %d\n", i, m);
-	if (m == -1) {
-		// output node name
+	if (m == -1) { // no cluster, output node name
 		fprintf(f, "%s", names[i]);
-	} else {
+	} else { // if cluster m contains (i,j), print each cluster
 		int i = inodes[m], iprev = iprevs[m],
 		    j = jnodes[m], jprev = jprevs[m];
 
-		// subtree with smaller height comes first
+		// subtree with smaller height comes first (has been clustered earlier)
 		if (iprev != -1 && (jprev == -1 || heights[jprev] < heights[iprev])) {
 			i = jnodes[m]; iprev = jprevs[m];
 			j = inodes[m]; jprev = iprevs[m];
