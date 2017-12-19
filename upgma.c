@@ -57,6 +57,8 @@ void upgma(FILE *f, double **dists, char **names, int n)
 		jprevs[m]  = cluster[j];
 		cluster[i] = cluster[j] = m;
 
+		// printf("cluster (%d,%d) at time %d with height %g\n", i, j, m, heights[m]);
+
 		// average the distance vectors of i and j, update the rest
 		// is it necessary to go through entire matrix, or just to average ith and jth rows? need consistent matrix in order to calculate minimum
 		for (k = 0; k < n; ++k) {
@@ -76,6 +78,7 @@ void upgma(FILE *f, double **dists, char **names, int n)
 			}
 		}
 
+		// this minimum calculation may perhaps be done in the previous loop
 		mini = 0; minj = 1; // may have zero distance
 		for (k = 0; k < n; ++k) {
 			for (l = k+1; l < n; ++l) {
@@ -89,14 +92,28 @@ void upgma(FILE *f, double **dists, char **names, int n)
 			}
 		}
 
+		/*
+		for (k = 0; k < n; ++k) {
+			for (l = 0; l < n; ++l)
+				printf("%f\t", dists[k][l]);
+			printf("\n");
+		}
+		*/
+
 		// update cluster sizes
 		sizes[i] += sizes[j];
 		sizes[j]  = sizes[i];
 	}
 
+	/*
+	printf("inodes\tjnodes\tiprevs\tjprevs\theights\n");
+	for (i = 0; i < n-1; ++i)
+		printf("%d\t%d\t%d\t%d\t%f\n", inodes[i], jnodes[i], iprevs[i], jprevs[i], heights[i]);
+	*/
+
 	// output clusters from heights, inodes and jnodes recursively
 	upgmaout(f, 0, n-2, inodes, jnodes, iprevs, jprevs, heights, names);
-	fprintf(f, ":0.0\n");
+	fprintf(f, ":0.0\n"); // root node at distance 0 to its parent (doesn't exist)
 
 	free(sizes);
 	free(cluster);
@@ -122,8 +139,10 @@ void upgmaout(FILE *f, int i, int m, int *inodes, int *jnodes, int *iprevs, int 
 		}
 
 		// distance of i and j to parent node
-		double iheight = heights[m] - (iprev != -1) * heights[iprev],
-		       jheight = heights[m] - (jprev != -1) * heights[jprev];
+		double iheight = heights[m] - ((iprev != -1) ? heights[iprev] : 0), // (iprev != -1) * heights[iprev]
+		       jheight = heights[m] - ((jprev != -1) ? heights[jprev] : 0);
+
+		// printf("(%d,%d) previously clustered at (%d,%d), have heights %g, %g\n", i, j, iprev, jprev, iheight, jheight);
 
 		// "remove" cluster from tree, recursively print each subtree
 		fprintf(f, "[");
