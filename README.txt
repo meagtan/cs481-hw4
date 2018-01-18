@@ -1,0 +1,4 @@
+The implementation of Needleman-Wunsch is contained in nw.(h|c) and the implementation of UPGMA is contained in upgma.(h|c). In the sample output given, the clusters were formed directly from the Needleman-Wunsch scores as if they represented a distance measure, but this in fact has the effect of clustering sequences far apart. In fact, it may not give meaningful outputs for negative scores. In order to comply with the output specification, I implemented the function nw in nw.c to return the score, but also calculate the edit distance between strings under the optimal alignment found by the algorithm. Should the edit distance be desired instead of the alignment score, simply remove the "/*" directly after "int res = " in nw.c.
+
+Ata Deniz Aydın
+21502637
